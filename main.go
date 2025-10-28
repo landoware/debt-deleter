@@ -10,7 +10,7 @@ import (
 
 type Loan struct {
 	name        string
-	balance     int
+	balance     float64
 	rate        float64
 	min_payment float64
 	due_day     int
