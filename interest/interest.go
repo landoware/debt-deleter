@@ -1,7 +1,6 @@
 package interest
 
 import (
-	"fmt"
 	"github.com/landoware/debt-deleter/money"
 	"math"
 	"testing"
@@ -46,8 +45,6 @@ func DailyInterest(rate Rate, balance money.Money) *money.Money {
 	dayBasis := 36525 * factor / 100
 
 	result := cents * integerRate / dayBasis / factor
-
-	fmt.Printf("integer rate: %d\n\nfactor: %d \n\ncents: %d\n\ndayBasis: %d\n\nresult: %d\n\nresult/100: %d\n\n", integerRate, factor, cents, dayBasis, result, result/100)
 
 	return money.NewMoney(0, result)
 }
