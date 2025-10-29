@@ -25,6 +25,16 @@ func (m Money) OnlyCents() int {
 func (m Money) String() string {
 	return fmt.Sprintf("$%d.%d", m.Dollars(), m.OnlyCents())
 }
+
+// Arithmetic
+func (m Money) Add(other Money) Money {
+	return Money{m.Cents + other.Cents}
+}
+
+func (m Money) Subtract(other Money) Money {
+	return Money{m.Cents - other.Cents}
+}
+
 // Comparison
 func (m Money) Equals(comparend Money) bool {
 	return m.Cents == comparend.Cents

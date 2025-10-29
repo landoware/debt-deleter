@@ -36,6 +36,30 @@ func TestOnlyCents(t *testing.T) {
 
 }
 
+func TestAdd(t *testing.T) {
+	a := money.NewMoney(10, 50)
+	b := money.NewMoney(1, 25)
+
+	expected := money.NewMoney(11, 75)
+	result := a.Add(b)
+
+	if result.NotEquals(expected) {
+		t.Errorf("Expected %s, got %s", expected.String(), result.String())
+	}
+}
+
+func TestSubtract(t *testing.T) {
+	a := money.NewMoney(10, 50)
+	b := money.NewMoney(1, 25)
+
+	expected := money.NewMoney(9, 25)
+	result := a.Subtract(b)
+
+	if result.NotEquals(expected) {
+		t.Errorf("Expected %s, got %s", expected.String(), result.String())
+	}
+}
+
 func TestLessThan(t *testing.T) {
 	lesser := money.NewMoney(0, 20)
 	greater := money.NewMoney(20, 0)
