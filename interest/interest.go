@@ -11,8 +11,8 @@ type Rate struct {
 	fractional_part int
 }
 
-func NewRateFromParts(whole_part, fractional_part int) *Rate {
-	return &Rate{
+func NewRateFromParts(whole_part, fractional_part int) Rate {
+	return Rate{
 		whole_part:      whole_part,
 		fractional_part: fractional_part,
 	}
@@ -52,7 +52,7 @@ func DailyInterest(rate Rate, balance money.Money) money.Money {
 // Unit tests for unexported functions
 
 func TestConvertForCalculation(t *testing.T) {
-	rates := []Rate{*NewRateFromParts(5, 0), *NewRateFromParts(5, 25)}
+	rates := []Rate{NewRateFromParts(5, 0), NewRateFromParts(5, 25)}
 	expectedResults := [][]int{{5, 1}, {525, 2}}
 
 	for i, expectedResult := range expectedResults {

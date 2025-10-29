@@ -5,13 +5,6 @@ import (
 	"testing"
 )
 
-func TestNewMoney(t *testing.T) {
-	m := money.NewMoney(10, 50)
-	if m == nil {
-		t.Error("Failed to create new money")
-	}
-}
-
 func TestDollars(t *testing.T) {
 	expected := 10
 	tenDollars := money.NewMoney(expected, 99)
