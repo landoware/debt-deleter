@@ -35,7 +35,7 @@ func getIntegerLength(fractional_part int) int {
 	return int(math.Floor(math.Log10(float64(fractional_part)))) + 1
 }
 
-func DailyInterest(rate Rate, balance money.Money) *money.Money {
+func DailyInterest(rate Rate, balance money.Money) money.Money {
 	integerRate, factor := rate.convertForCalculation()
 
 	// Cents are 100x larger than percentages, so reduce the order of magnitude after scaling them up by the interest factor.
