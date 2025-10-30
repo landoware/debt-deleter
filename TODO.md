@@ -3,7 +3,6 @@
 #1 goal is to minimize interest paid.
 Try simulating various payments each month, keeping track of the best attempt so far, stopping if we do worse on that particular path.
 probably O(n-finity)
-Find that youtube video on optimizing for inspo
 
 ## Amorts
 - [x] Refactor to use the interest package

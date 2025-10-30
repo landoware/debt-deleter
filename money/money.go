@@ -23,7 +23,7 @@ func (m Money) OnlyCents() int {
 }
 
 func (m Money) String() string {
-	return fmt.Sprintf("$%d.%d", m.Dollars(), m.OnlyCents())
+	return fmt.Sprintf("$%d.%02d", m.Dollars(), m.OnlyCents())
 }
 
 // Arithmetic

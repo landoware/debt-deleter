@@ -1,23 +1,5 @@
 package main
 
-type Loan struct {
-	name        string
-	balance     float64
-	rate        float64
-	min_payment float64
-	due_day     int
-}
-
-func newLoan(name string, balance, rate, min_payment float64, due_day int) Loan {
-	return Loan{
-		name:        name,
-		balance:     balance,
-		rate:        rate,
-		min_payment: min_payment,
-		due_day:     due_day,
-	}
-}
-
 func main() {
 	// loanA := newLoan("Nelnet AA", 7500.00, 0.05, 200.0, 18)
 	//
