@@ -4,6 +4,11 @@
 Try simulating various payments each month, keeping track of the best attempt so far, stopping if we do worse on that particular path.
 probably O(n-finity)
 
+## Payments
+- [ ] Break up the MakePayments function into smaller functions for readability and testing.
+    - [ ] write the tests too
+- [ ] Do something better than randomly picking the loan to make a payment on
+
 ## Amorts
 - [x] Refactor to use the interest package
 - [x] Return a list comprising the payment schedule

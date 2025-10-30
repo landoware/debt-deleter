@@ -3,6 +3,7 @@ package debts
 import (
 	"github.com/landoware/debt-deleter/interest"
 	"github.com/landoware/debt-deleter/money"
+	"github.com/uniplaces/carbon"
 )
 
 type Loan struct {
@@ -12,6 +13,12 @@ type Loan struct {
 	Rate           interest.Rate
 	MinPayment     money.Money
 	DueDay         int
+	Schedule       []Payment
+}
+
+type Payment struct {
+	Date   carbon.Carbon
+	Amount money.Money
 }
 
 func NewLoan(name string, principal money.Money, rate interest.Rate, min_payment money.Money, due_day int, unpaidInterest money.Money) Loan {
