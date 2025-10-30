@@ -2,6 +2,7 @@ package interest
 
 import (
 	"github.com/landoware/debt-deleter/money"
+	"github.com/uniplaces/carbon"
 	"math"
 	"testing"
 )
@@ -47,6 +48,14 @@ func DailyInterest(rate Rate, balance money.Money) money.Money {
 	result := cents * integerRate / dayBasis / factor
 
 	return money.NewMoney(0, result)
+}
+
+func MonthlyInterest(startDate carbon.Carbon, balance money.Money, rate Rate) money.Money {
+	endDate := startDate.AddMonth()
+
+	days := int(endDate.DiffInDays(&startDate, true))
+
+	return money.NewMoney(0, days*DailyInterest(rate, balance).Cents)
 }
 
 // Unit tests for unexported functions

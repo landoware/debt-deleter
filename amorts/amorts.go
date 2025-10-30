@@ -38,17 +38,8 @@ func getNumberOfPayments(balance money.Money, rate interest.Rate, payment money.
 		payments++
 
 		// todo figure out how to properly chain .Add().Subtract()
-		balance = balance.Add(getMonthlyInterest(*startDate, balance, rate))
-		balance = balance.Subtract(payment)
+		balance = balance.Add(interest.MonthlyInterest(*startDate, balance, rate)).Subtract(payment)
 		schedule = append(schedule, balance)
 	}
 	return payments, schedule, nil
-}
-
-func getMonthlyInterest(startDate carbon.Carbon, balance money.Money, rate interest.Rate) money.Money {
-	endDate := startDate.AddMonth()
-
-	days := int(endDate.DiffInDays(&startDate, true))
-
-	return money.NewMoney(0, days*interest.DailyInterest(rate, balance).Cents)
 }

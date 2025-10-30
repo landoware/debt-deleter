@@ -1,13 +1,18 @@
 # Todo
 
+#1 goal is to minimize interest paid.
+Try simulating various payments each month, keeping track of the best attempt so far, stopping if we do worse on that particular path.
+probably O(n-finity)
+Find that youtube video on optimizing for inspo
+
 ## Amorts
-- [ ] Refactor to use the interest package
-- [ ] Return a list comprising the payment schedule
+- [x] Refactor to use the interest package
+- [x] Return a list comprising the payment schedule
 - [ ] Remove carbon dependancy?
 
 ## Money
-- [ ] Add comparison methods
-- [ ] Add arithmetic methods
+- [x] Add comparison methods
+- [x] Add arithmetic methods
 - [ ] Add support for currencies other than USD
 
 ## Misc
