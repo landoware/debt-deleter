@@ -1,57 +1,70 @@
 package payments
 
 import (
+	"errors"
+	"fmt"
+	"math/rand"
+
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/interest"
 	"github.com/landoware/debt-deleter/money"
 	"github.com/uniplaces/carbon"
-	"math/rand"
 )
 
 type State struct {
-	interestPaid     money.Money
-	bestInterestPaid money.Money
-	budget           money.Money
-	loans            []debts.Loan
-	date             *carbon.Carbon
+	interestAccrued     money.Money
+	bestInterestAccrued money.Money
+	budget              money.Money
+	loans               []debts.Loan
+	date                *carbon.Carbon
 }
 
 const MaxInt = int(^uint(0) >> 1)
 
-func OptimizeLoans(budget money.Money, loans []debts.Loan) {
+func OptimizeLoans(budget money.Money, loans []debts.Loan) ([]debts.Loan, error) {
 
 	state := State{
-		interestPaid:     money.NewMoney(0, 0),
-		bestInterestPaid: money.Money{Cents: MaxInt},
-		budget:           budget,
-		loans:            loans,
-		date:             carbon.Now(),
+		interestAccrued: money.NewMoney(0, 0),
+		budget:          budget,
+		loans:           loans,
+		date:            carbon.Now(),
 	}
 
-	paidLoans := MakePayments(&state)
+	var bestResult []debts.Loan
+	bestInterest := money.Money{Cents: MaxInt}
+
+	attempts := 0
+
+	paidLoans, interestPaid := MakePayments(&state, bestInterest)
 	for {
-		if paidLoans != nil {
-			break
+		attempts++
+		if attempts > 1000 {
+			return bestResult, fmt.Errorf("Stopped after %d attempts", attempts)
 		}
+
+		if paidLoans != nil && interestPaid.LessThan(bestInterest) {
+			bestResult = paidLoans
+			bestInterest = interestPaid
+		}
+
+		MakePayments(&state, bestInterest)
 	}
 
+	return bestResult, nil
 }
 
 // Recusrive method to allocate a budgeted amount across the list of loans in the most efficient way.
 // Should be able to take in any state and figure out "from this point, what's the best allocation
 // to minimize interest paid?"
-func MakePayments(state *State) []debts.Loan {
+func MakePayments(state *State, bestInterest money.Money) ([]debts.Loan, money.Money) {
 	// If everything is paid off, return
 	if checkPaidOff(state.loans) {
-		if state.interestPaid.LessThan(state.bestInterestPaid) {
-			state.bestInterestPaid = state.interestPaid
-		}
-		return state.loans
+		return state.loans, state.interestAccrued
 	}
 
 	// Should we even continue? If we're doing worse than our best attempt, nope.
-	if state.interestPaid.GreaterThan(state.bestInterestPaid) {
-		return nil
+	if state.interestAccrued.GreaterThan(state.bestInterestAccrued) {
+		return nil, state.interestAccrued
 	}
 
 	// Pick the loan to make the largest payment to at random.
@@ -77,18 +90,21 @@ func MakePayments(state *State) []debts.Loan {
 
 			// Set the running interest paid in the state.
 			if loan.MinPayment.LessThanOrEqualTo(unpaidInterest) {
-				state.interestPaid = state.interestPaid.Add(unpaidInterest)
+				state.interestAccrued = state.interestAccrued.Add(unpaidInterest)
 			} else {
-				state.interestPaid = state.interestPaid.Add(loan.MinPayment)
+				state.interestAccrued = state.interestAccrued.Add(loan.MinPayment)
 			}
 		}
 	}
 
+	// Finally, pay the remaining budget on the chosen loan
 	state.loans[chosenIndex].PayOnLoan(budgetRemaining)
 
-	// Add a month to the date
-	// do it all again
-	return MakePayments(state)
+	// Increment the date
+	state.date.AddMonth()
+
+	// Do it all again
+	return MakePayments(state, bestInterest)
 }
 
 func checkPaidOff(loans []debts.Loan) bool {
