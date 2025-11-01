@@ -1,7 +1,6 @@
 package payments
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 
@@ -12,16 +11,24 @@ import (
 )
 
 type State struct {
-	interestAccrued     money.Money
-	bestInterestAccrued money.Money
-	budget              money.Money
-	loans               []debts.Loan
-	date                *carbon.Carbon
+	interestAccrued money.Money
+	budget          money.Money
+	loans           []debts.Loan
+	date            *carbon.Carbon
+	paidExtraOn     []int
+	bestResult      []int
 }
 
 const MaxInt = int(^uint(0) >> 1)
 
-func OptimizeLoans(budget money.Money, loans []debts.Loan) ([]debts.Loan, error) {
+// Given a budget and a slice of loans, try to minimize the amount of interest
+// that will accrue until the loans are paid off.
+// The allocations result will be the index in loans which the higher-than-minimum
+// payment was made to.
+//
+// A sucessful optimization will return err = nil. However, if the maximum attempts
+// were exceeded, a usuable value may be in allocations.
+func OptimizeLoans(budget money.Money, loans []debts.Loan) (allocations []int, totalInterestAccrued money.Money, attempts int, err error) {
 
 	state := State{
 		interestAccrued: money.NewMoney(0, 0),
@@ -30,45 +37,51 @@ func OptimizeLoans(budget money.Money, loans []debts.Loan) ([]debts.Loan, error)
 		date:            carbon.Now(),
 	}
 
-	var bestResult []debts.Loan
 	bestInterest := money.Money{Cents: MaxInt}
 
-	attempts := 0
+	attempts = 0
 
-	paidLoans, interestPaid := MakePayments(&state, bestInterest)
 	for {
 		attempts++
-		if attempts > 1000 {
-			return bestResult, fmt.Errorf("Stopped after %d attempts", attempts)
+
+		if attempts > 100 {
+			return state.bestResult, bestInterest, attempts, fmt.Errorf("Stopped after %d attempts", attempts)
 		}
 
-		if paidLoans != nil && interestPaid.LessThan(bestInterest) {
-			bestResult = paidLoans
-			bestInterest = interestPaid
+		totalInterestAccrued, paidInFull := MakePayments(&state, bestInterest)
+		// totalInterestAccrued, _ := MakePayments(&state, bestInterest)
+
+		if bestInterest == totalInterestAccrued {
+			return state.bestResult, totalInterestAccrued, attempts, nil
 		}
 
-		MakePayments(&state, bestInterest)
+		if paidInFull && totalInterestAccrued.LessThan(bestInterest) {
+			state.bestResult = state.paidExtraOn
+			bestInterest = totalInterestAccrued
+		}
+
 	}
 
-	return bestResult, nil
 }
 
 // Recusrive method to allocate a budgeted amount across the list of loans in the most efficient way.
 // Should be able to take in any state and figure out "from this point, what's the best allocation
 // to minimize interest paid?"
-func MakePayments(state *State, bestInterest money.Money) ([]debts.Loan, money.Money) {
+//
+// Returns itnerestPaid, the total accrued during this payment attempt, and whether the loans were all
+// paidInFull at the end of the function.
+func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Money, paidInFull bool) {
 	// If everything is paid off, return
 	if checkPaidOff(state.loans) {
-		return state.loans, state.interestAccrued
+		return state.interestAccrued, true
 	}
 
 	// Should we even continue? If we're doing worse than our best attempt, nope.
-	if state.interestAccrued.GreaterThan(state.bestInterestAccrued) {
-		return nil, state.interestAccrued
+	if state.interestAccrued.GreaterThan(bestInterest) {
+		return state.interestAccrued, false
 	}
 
 	// Pick the loan to make the largest payment to at random.
-	// Fuck it.
 	chosenIndex := rand.Intn(len(state.loans))
 	budgetRemaining := state.budget
 
@@ -79,21 +92,12 @@ func MakePayments(state *State, bestInterest money.Money) ([]debts.Loan, money.M
 		loan.UnpaidInterest = loan.UnpaidInterest.Add(newInterest)
 
 		unpaidInterest := loan.UnpaidInterest
+		state.interestAccrued = state.interestAccrued.Add(unpaidInterest)
+		state.paidExtraOn = append(state.paidExtraOn, chosenIndex)
 
 		if i != chosenIndex {
 			budgetRemaining = budgetRemaining.Subtract(loan.MinPayment)
 			loan.PayOnLoan(loan.MinPayment)
-
-			payment := debts.Payment{Date: *state.date, Amount: loan.MinPayment}
-
-			loan.Schedule = append(loan.Schedule, payment)
-
-			// Set the running interest paid in the state.
-			if loan.MinPayment.LessThanOrEqualTo(unpaidInterest) {
-				state.interestAccrued = state.interestAccrued.Add(unpaidInterest)
-			} else {
-				state.interestAccrued = state.interestAccrued.Add(loan.MinPayment)
-			}
 		}
 	}
 
@@ -107,6 +111,7 @@ func MakePayments(state *State, bestInterest money.Money) ([]debts.Loan, money.M
 	return MakePayments(state, bestInterest)
 }
 
+// Are each of the loans in the list fully paid off?
 func checkPaidOff(loans []debts.Loan) bool {
 	for _, loan := range loans {
 		if loan.Principal.GreaterThanZero() {
