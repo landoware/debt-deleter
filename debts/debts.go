@@ -32,15 +32,31 @@ func NewLoan(name string, principal money.Money, rate interest.Rate, min_payment
 	}
 }
 
-func (loan *Loan) PayOnLoan(amount money.Money) {
-	// Reduce interest
-	if loan.UnpaidInterest.GreaterThanOrEqualTo(amount) {
-		amount = amount.Subtract(loan.UnpaidInterest)
+// Make a payment on the loan. Returns remainder, which is non-zero
+// when the payment pays off the loan.
+func (loan *Loan) PayOnLoan(amount money.Money) (remainder money.Money) {
+	// If the minimum doesn't cover interest, sucks to suck. GL;HF
+	// if loan.UnpaidInterest.GreaterThanOrEqualTo(amount) {
+	// 	loan.UnpaidInterest.Cents = loan.UnpaidInterest.Cents - amount.Cents
+	// 	return money.Money{Cents: 0}
+	// }
+
+	// How much do we have left after interest?
+	centsLeft := amount.Cents - loan.UnpaidInterest.Cents
+
+	if centsLeft > 0 && centsLeft > loan.Principal.Cents {
+		remainder := centsLeft - loan.Principal.Cents
 		loan.UnpaidInterest.Cents = 0
+		loan.Principal.Cents = 0
+
+		return money.Money{Cents: remainder}
+	} else if centsLeft > 0 && centsLeft < loan.Principal.Cents {
+		loan.Principal.Cents = max(loan.Principal.Cents-centsLeft, 0)
+		return money.Money{Cents: 0}
+
+	} else {
+		loan.UnpaidInterest.Cents += centsLeft
+		return money.Money{Cents: 0}
 	}
 
-	// Allocate the rest to principal
-	if amount.GreaterThanZero() {
-		loan.Principal = loan.Principal.Subtract(amount)
-	}
 }

@@ -79,3 +79,7 @@ func (m Money) LessThanZero() bool {
 func (m Money) LessThanOrEqualToZero() bool {
 	return m.Cents <= 0
 }
+
+func (m Money) NotEqualsZero() bool {
+	return m.Cents != 0
+}
