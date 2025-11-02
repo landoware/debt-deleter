@@ -15,9 +15,12 @@ type Loan struct {
 	DueDay         int
 }
 
-type Payment struct {
-	Date   carbon.Carbon
-	Amount money.Money
+type Period struct {
+	Loan             string
+	Date             *carbon.Carbon
+	InterestAccrued  string
+	PaymentMade      string
+	ResultingBalance string
 }
 
 func NewLoan(name string, principal money.Money, rate interest.Rate, min_payment money.Money, due_day int, unpaidInterest money.Money) Loan {

@@ -2,6 +2,7 @@ package optimizer
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/money"
@@ -18,7 +19,7 @@ const MaxInt = int(^uint(0) >> 1)
 //
 // A sucessful optimization will return err = nil. However, if the maximum attempts
 // were exceeded, a usuable value may be in allocations.
-func Optimize(loans []debts.Loan, budget money.Money) (loansOrderedToPay []debts.Loan, interestAccrued money.Money) {
+func Optimize(loans []debts.Loan, budget money.Money) (loansOrderedToPay []debts.Loan, interestAccrued money.Money, schedule []debts.Period) {
 
 	state := payments.State{
 		InterestAccrued: money.NewMoney(0, 0),
@@ -28,6 +29,7 @@ func Optimize(loans []debts.Loan, budget money.Money) (loansOrderedToPay []debts
 	}
 
 	bestInterest := money.Money{Cents: MaxInt}
+	bestSchedule := make([]debts.Period, 0)
 
 	length := len(loans)
 
@@ -40,18 +42,29 @@ func Optimize(loans []debts.Loan, budget money.Money) (loansOrderedToPay []debts
 		// How'd we do?
 		if paidInFull && totalInterestAccrued.LessThan(bestInterest) {
 			state.BestResult = deepCopy(unalteredLoans)
+			bestSchedule = append(make([]debts.Period, 0), state.Schedule...)
 			bestInterest = totalInterestAccrued
 		}
 
 		// Reorder the loans slice and set up for the next run
 		loans = HeapsAlgorithm(length, unalteredLoans)
 		state.Loans = loans
+		state.Schedule = make([]debts.Period, 0)
 		state.InterestAccrued.Cents = 0
 		state.Date = carbon.Now()
 	}
 	// Reverse the order since the best result is in reverse-order
 	slices.Reverse(state.BestResult)
-	return state.BestResult, bestInterest
+
+	// Sort the schedule by date before returning
+	slices.SortFunc(bestSchedule, func(a, b debts.Period) int {
+		if n := a.Date.Time.Compare(b.Date.Time); n != 0 {
+			return n
+		}
+		return strings.Compare(a.Loan, b.Loan)
+	})
+
+	return state.BestResult, bestInterest, bestSchedule
 
 }
 

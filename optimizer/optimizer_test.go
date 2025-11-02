@@ -45,7 +45,7 @@ func TestOptimizeSingleLoan(t *testing.T) {
 	var expected []debts.Loan
 	expected = append(expected, loan)
 
-	result, _ := optimizer.Optimize(loans, budget)
+	result, _, _ := optimizer.Optimize(loans, budget)
 
 	for i := range result {
 		if result[i].NotEquals(expected[i]) {
@@ -71,7 +71,7 @@ func TestOptimizeTwoLoans(t *testing.T) {
 
 	budget := money.NewMoney(150, 0)
 
-	result, _ := optimizer.Optimize(loans, budget)
+	result, _, _ := optimizer.Optimize(loans, budget)
 
 	for i := range result {
 		if result[i].NotEquals(expected[i]) {
@@ -102,7 +102,7 @@ func TestOptimizeThreeLoans(t *testing.T) {
 
 	budget := money.NewMoney(250, 0)
 
-	result, _ := optimizer.Optimize(loans, budget)
+	result, _, _ := optimizer.Optimize(loans, budget)
 
 	for i := range result {
 		if result[i].NotEquals(expected[i]) {

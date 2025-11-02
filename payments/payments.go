@@ -1,6 +1,8 @@
 package payments
 
 import (
+	"time"
+
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/interest"
 	"github.com/landoware/debt-deleter/money"
@@ -13,6 +15,7 @@ type State struct {
 	Loans           []debts.Loan
 	Date            *carbon.Carbon
 	BestResult      []debts.Loan
+	Schedule        []debts.Period
 }
 
 // Makes payments on the slide of loans contained in state.Loans, according to state.Budget.
@@ -49,22 +52,36 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 	// Calculate values for each loan and apply the payments
 	for i, loan := range state.Loans {
 
+		dueDate := getDueDateFromDate(loan, state.Date)
+
 		// Figure out interest
-		newInterest := interest.MonthlyInterest(*state.Date, loan.Principal, loan.Rate)
+		newInterest := interest.MonthlyInterest(*dueDate, loan.Principal, loan.Rate)
 		// Add it to the loan
 		loan.UnpaidInterest = loan.UnpaidInterest.Add(newInterest)
 		// Add to the total in the state
 		state.InterestAccrued = state.InterestAccrued.Add(newInterest)
 
+		period := debts.Period{
+			Loan:            loan.Name,
+			Date:            dueDate,
+			InterestAccrued: newInterest.String(),
+		}
+
 		// Non-end-of-slice indexes get the minimum payment.
 		if i < len(state.Loans)-1 {
+			period.PaymentMade = loan.MinPayment.String()
 			budgetRemaining = budgetRemaining.Subtract(loan.MinPayment)
 			remainder := loan.PayOnLoan(loan.MinPayment)
 			budgetRemaining = budgetRemaining.Add(remainder)
 		} else {
 			// Make the extra payment on the last index
+			period.PaymentMade = budgetRemaining.String()
 			loan.PayOnLoan(budgetRemaining)
 		}
+
+		// Finish up the schedule's data
+		period.ResultingBalance = loan.Principal.String()
+		state.Schedule = append(state.Schedule, period)
 
 		// Persist it to the state
 		state.Loans[i] = loan
@@ -86,4 +103,12 @@ func checkPaidOff(loans []debts.Loan) bool {
 		}
 	}
 	return true
+}
+
+func getDueDateFromDate(loan debts.Loan, date *carbon.Carbon) *carbon.Carbon {
+	dueDate, carbonErr := carbon.CreateFromDate(date.Year(), date.Month(), loan.DueDay, time.Local.String())
+	if carbonErr != nil {
+		return date
+	}
+	return dueDate
 }
