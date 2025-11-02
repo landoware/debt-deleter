@@ -66,8 +66,8 @@ func TestOptimizeTwoLoans(t *testing.T) {
 	loans = append(loans, loanB)
 
 	var expected []debts.Loan
-	expected = append(expected, loanB)
 	expected = append(expected, loanA)
+	expected = append(expected, loanB)
 
 	budget := money.NewMoney(150, 0)
 

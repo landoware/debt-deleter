@@ -42,14 +42,18 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 	// Initalize the budgeted amount
 	budgetRemaining := state.Budget
 
+	// Filter out Paid Loans
+	activeLoans := state.Loans[:0]
+	for _, loan := range state.Loans {
+		if loan.Principal.GreaterThanZero() {
+			activeLoans = append(activeLoans, loan)
+		}
+	}
+	state.Loans = activeLoans
+
 	// Calculate values for each loan and apply the payments
 	for i, loan := range state.Loans {
 		fmt.Printf("Calculating for %+v\n", loan)
-		// Remove it if it's paid in full
-		if loan.Principal.LessThanOrEqualToZero() {
-			state.Loans = append(state.Loans[:i], state.Loans[i+1:]...)
-			continue
-		}
 
 		// Figure out interest
 		newInterest := interest.MonthlyInterest(*state.Date, loan.Principal, loan.Rate)
@@ -61,7 +65,7 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 		fmt.Printf("After Interest accrual: %+v\n", loan)
 
 		// Non-end-of-slice indexes get the minimum payment.
-		if i < len(state.Loans) {
+		if i < len(state.Loans)-1 {
 			fmt.Println("-- Paying Min Payment --")
 			budgetRemaining = budgetRemaining.Subtract(loan.MinPayment)
 			remainder := loan.PayOnLoan(loan.MinPayment)
@@ -69,7 +73,7 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 		} else {
 			fmt.Printf("!! PAYING %s !!\n", budgetRemaining.String())
 			// Make the extra payment on the last index
-			budgetRemaining = budgetRemaining.Subtract(budgetRemaining)
+			loan.PayOnLoan(budgetRemaining)
 		}
 		fmt.Printf("After Payment (index %d): %+v\n", i, loan)
 
