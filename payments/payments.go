@@ -1,8 +1,6 @@
 package payments
 
 import (
-	"fmt"
-
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/interest"
 	"github.com/landoware/debt-deleter/money"
@@ -26,8 +24,6 @@ type State struct {
 // since a prior attempt did better.
 func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Money, paidInFull bool) {
 	// TODO is fucked
-	fmt.Println("making payments\n----------------")
-	fmt.Printf("State:\nInterestAccrued: %s\nLoans: %+v\nDate: %s\n\n", state.InterestAccrued.String(), state.Loans, state.Date.DateString())
 	// If everything is paid off, return
 	if checkPaidOff(state.Loans) {
 		return state.InterestAccrued, true
@@ -35,7 +31,6 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 
 	// Should we even continue? If we're doing worse than our best attempt, nope.
 	if state.InterestAccrued.GreaterThan(bestInterest) {
-		fmt.Printf("returned because state.InterestAccrued > bestInterest: %s > %s\n", state.InterestAccrued.String(), bestInterest.String())
 		return state.InterestAccrued, false
 	}
 
@@ -53,7 +48,6 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 
 	// Calculate values for each loan and apply the payments
 	for i, loan := range state.Loans {
-		fmt.Printf("Calculating for %+v\n", loan)
 
 		// Figure out interest
 		newInterest := interest.MonthlyInterest(*state.Date, loan.Principal, loan.Rate)
@@ -62,20 +56,15 @@ func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Mo
 		// Add to the total in the state
 		state.InterestAccrued = state.InterestAccrued.Add(newInterest)
 
-		fmt.Printf("After Interest accrual: %+v\n", loan)
-
 		// Non-end-of-slice indexes get the minimum payment.
 		if i < len(state.Loans)-1 {
-			fmt.Println("-- Paying Min Payment --")
 			budgetRemaining = budgetRemaining.Subtract(loan.MinPayment)
 			remainder := loan.PayOnLoan(loan.MinPayment)
 			budgetRemaining = budgetRemaining.Add(remainder)
 		} else {
-			fmt.Printf("!! PAYING %s !!\n", budgetRemaining.String())
 			// Make the extra payment on the last index
 			loan.PayOnLoan(budgetRemaining)
 		}
-		fmt.Printf("After Payment (index %d): %+v\n", i, loan)
 
 		// Persist it to the state
 		state.Loans[i] = loan

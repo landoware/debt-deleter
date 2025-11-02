@@ -1,8 +1,6 @@
 package optimizer
 
 import (
-	"fmt"
-
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/money"
 	"github.com/landoware/debt-deleter/payments"
@@ -31,14 +29,12 @@ func Optimize(loans []debts.Loan, budget money.Money) (loansOrderedToPay []debts
 
 	length := len(loans)
 
-	for i := range length {
+	for range length {
 		// Make a copy of the original state of the loans
 		unalteredLoans := deepCopy(loans)
-		fmt.Printf("Perm %d:\n%v\n", i, loans)
 		// Make payments on each loan, paying the minimum on everything except the last loan in the slice
 		totalInterestAccrued, paidInFull := payments.MakePayments(&state, bestInterest)
 
-		fmt.Printf("Perm %d, PIF: %t. Interest: %s, prior bestInterest: %s", i+1, paidInFull, totalInterestAccrued.String(), bestInterest.String())
 		// How'd we do?
 		if paidInFull && totalInterestAccrued.LessThan(bestInterest) {
 			state.BestResult = deepCopy(unalteredLoans)
@@ -75,7 +71,6 @@ func HeapsAlgorithm(length int, loans []debts.Loan) []debts.Loan {
 }
 
 func deepCopy(loans []debts.Loan) (copy []debts.Loan) {
-	fmt.Printf("Copying %+v", loans)
 	copy = make([]debts.Loan, len(loans))
 
 	for i, loan := range loans {
@@ -86,7 +81,6 @@ func deepCopy(loans []debts.Loan) (copy []debts.Loan) {
 		copy[i].MinPayment = loan.MinPayment
 		copy[i].DueDay = loan.DueDay
 	}
-	fmt.Printf(" to %+v\n", copy)
 
 	return copy
 }
