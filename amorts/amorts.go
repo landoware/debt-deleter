@@ -20,7 +20,7 @@ func getNumberOfPayments(balance money.Money, rate interest.Rate, payment money.
 		return 0, schedule, nil
 	}
 
-	payments := 0
+	payments := 1
 
 	startDate, carbonErr := carbon.CreateFromDate(carbon.Now().Year(), carbon.Now().Month(), paymentDay, time.Local.String())
 	if carbonErr != nil {
