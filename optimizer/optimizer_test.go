@@ -66,8 +66,8 @@ func TestOptimizeTwoLoans(t *testing.T) {
 	loans = append(loans, loanB)
 
 	var expected []debts.Loan
-	expected = append(expected, loanA)
 	expected = append(expected, loanB)
+	expected = append(expected, loanA)
 
 	budget := money.NewMoney(150, 0)
 
@@ -75,7 +75,37 @@ func TestOptimizeTwoLoans(t *testing.T) {
 
 	for i := range result {
 		if result[i].NotEquals(expected[i]) {
-			t.Logf("\nresult %+v\nexpected %+v\n\n", result, expected)
+			t.Errorf("Expected '%s' with balance %s to be in index %d, '%s' with %s found", expected[i].Name, expected[i].Principal.String(), i, result[i].Name, result[i].Principal.String())
+		}
+	}
+}
+
+func TestOptimizeThreeLoans(t *testing.T) {
+	var loans []debts.Loan
+
+	rateA := interest.NewRateFromParts(10, 0)
+	loanA := debts.NewLoan("Loan A", money.NewMoney(1000, 0), rateA, money.NewMoney(125, 0), 1, money.NewMoney(0, 0))
+	loans = append(loans, loanA)
+
+	rateB := interest.NewRateFromParts(5, 0)
+	loanB := debts.NewLoan("Loan B", money.NewMoney(7500, 0), rateB, money.NewMoney(100, 0), 1, money.NewMoney(0, 0))
+	loans = append(loans, loanB)
+
+	rateC := interest.NewRateFromParts(7, 125)
+	loanC := debts.NewLoan("Loan C", money.NewMoney(5000, 0), rateC, money.NewMoney(75, 0), 1, money.NewMoney(0, 0))
+	loans = append(loans, loanC)
+
+	var expected []debts.Loan
+	expected = append(expected, loanC)
+	expected = append(expected, loanB)
+	expected = append(expected, loanA)
+
+	budget := money.NewMoney(250, 0)
+
+	result, _ := optimizer.Optimize(loans, budget)
+
+	for i := range result {
+		if result[i].NotEquals(expected[i]) {
 			t.Errorf("Expected '%s' with balance %s to be in index %d, '%s' with %s found", expected[i].Name, expected[i].Principal.String(), i, result[i].Name, result[i].Principal.String())
 		}
 	}

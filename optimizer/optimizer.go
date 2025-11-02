@@ -1,6 +1,8 @@
 package optimizer
 
 import (
+	"slices"
+
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/money"
 	"github.com/landoware/debt-deleter/payments"
@@ -47,7 +49,8 @@ func Optimize(loans []debts.Loan, budget money.Money) (loansOrderedToPay []debts
 		state.InterestAccrued.Cents = 0
 		state.Date = carbon.Now()
 	}
-
+	// Reverse the order since the best result is in reverse-order
+	slices.Reverse(state.BestResult)
 	return state.BestResult, bestInterest
 
 }
