@@ -28,6 +28,9 @@ func TestPayOnLoanWithoutInterest(t *testing.T) {
 	if loan.Principal.NotEquals(expected) {
 		t.Errorf("Expected balance after %s payment to be %s, %s returned", loan.MinPayment, expected, loan.Principal.String())
 	}
+	if loan.UnpaidInterest.NotEqualsZero() {
+		t.Errorf("Expected interest balance to be $0.00, %s returned", loan.UnpaidInterest.String())
+	}
 }
 
 func TestPayOnLoanWithInterest(t *testing.T) {
@@ -49,6 +52,9 @@ func TestPayOnLoanWithInterest(t *testing.T) {
 
 	if loan.Principal.NotEquals(expected) {
 		t.Errorf("Expected balance after %s payment to be %s, %s returned", loan.MinPayment, expected, loan.Principal)
+	}
+	if loan.UnpaidInterest.NotEqualsZero() {
+		t.Errorf("Expected interest balance to be $0.00, %s returned", loan.UnpaidInterest.String())
 	}
 }
 
@@ -72,6 +78,9 @@ func TestOverpayOnLoanWithoutInterest(t *testing.T) {
 	if loan.Principal.NotEqualsZero() {
 		t.Errorf("Expected balance after overpayment to be $0.00, %s returned", loan.Principal.String())
 	}
+	if loan.UnpaidInterest.NotEqualsZero() {
+		t.Errorf("Expected interest balance to be $0.00, %s returned", loan.UnpaidInterest.String())
+	}
 }
 
 func TestOverpayOnLoanWithInterest(t *testing.T) {
@@ -94,6 +103,9 @@ func TestOverpayOnLoanWithInterest(t *testing.T) {
 	if loan.Principal.NotEqualsZero() {
 		t.Errorf("Expected balance after overpayment to be $0.00, %s returned", loan.Principal.String())
 	}
+	if loan.UnpaidInterest.NotEqualsZero() {
+		t.Errorf("Expected interest balance to be $0.00, %s returned", loan.UnpaidInterest.String())
+	}
 }
 
 func TestPaymentLessThanInterest(t *testing.T) {
@@ -107,14 +119,18 @@ func TestPaymentLessThanInterest(t *testing.T) {
 	}
 
 	remainder := loan.PayOnLoan(loan.MinPayment)
-	expected := money.NewMoney(125, 0)
+	expectedInterest := money.NewMoney(25, 0)
+	expectedPrincipal := money.NewMoney(100, 0)
 
 	if remainder.NotEqualsZero() {
 		t.Errorf("Expected no remainder, got %s", remainder.String())
 	}
 
-	if loan.Principal.Add(loan.UnpaidInterest).NotEquals(expected) {
-		t.Errorf("Expected total balance after %s payment to be %s, %s returned", loan.MinPayment, expected, loan.Principal.Add(loan.UnpaidInterest))
+	if loan.Principal.NotEquals(expectedPrincipal) {
+		t.Errorf("Expected principal balance after %s payment to be %s, %s returned", loan.MinPayment, expectedPrincipal, loan.Principal.String())
+	}
+	if loan.UnpaidInterest.NotEquals(expectedInterest) {
+		t.Errorf("Expected interest balance to be $0.00, %s returned", loan.UnpaidInterest.String())
 	}
 
 }

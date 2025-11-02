@@ -2,7 +2,6 @@ package payments
 
 import (
 	"fmt"
-	"math/rand"
 
 	"github.com/landoware/debt-deleter/debts"
 	"github.com/landoware/debt-deleter/interest"
@@ -11,101 +10,76 @@ import (
 )
 
 type State struct {
-	interestAccrued money.Money
-	budget          money.Money
-	loans           []debts.Loan
-	date            *carbon.Carbon
-	paidExtraOn     []int
-	bestResult      []int
+	InterestAccrued money.Money
+	Budget          money.Money
+	Loans           []debts.Loan
+	Date            *carbon.Carbon
+	BestResult      []debts.Loan
 }
 
-const MaxInt = int(^uint(0) >> 1)
-
-// Given a budget and a slice of loans, try to minimize the amount of interest
-// that will accrue until the loans are paid off.
-// The allocations result will be the index in loans which the higher-than-minimum
-// payment was made to.
+// Makes payments on the slide of loans contained in state.Loans, according to state.Budget.
+// The last loan in the slice gets the remaining budgeted amount.
 //
-// A sucessful optimization will return err = nil. However, if the maximum attempts
-// were exceeded, a usuable value may be in allocations.
-func OptimizeLoans(budget money.Money, loans []debts.Loan) (allocations []int, totalInterestAccrued money.Money, attempts int, err error) {
-
-	state := State{
-		interestAccrued: money.NewMoney(0, 0),
-		budget:          budget,
-		loans:           loans,
-		date:            carbon.Now(),
-	}
-
-	bestInterest := money.Money{Cents: MaxInt}
-
-	attempts = 0
-
-	for {
-		attempts++
-
-		if attempts > 100 {
-			return state.bestResult, bestInterest, attempts, fmt.Errorf("Stopped after %d attempts", attempts)
-		}
-
-		totalInterestAccrued, paidInFull := MakePayments(&state, bestInterest)
-		// totalInterestAccrued, _ := MakePayments(&state, bestInterest)
-
-		if bestInterest == totalInterestAccrued {
-			return state.bestResult, totalInterestAccrued, attempts, nil
-		}
-
-		if paidInFull && totalInterestAccrued.LessThan(bestInterest) {
-			state.bestResult = state.paidExtraOn
-			bestInterest = totalInterestAccrued
-		}
-
-	}
-
-}
-
-// Recusrive method to allocate a budgeted amount across the list of loans in the most efficient way.
-// Should be able to take in any state and figure out "from this point, what's the best allocation
-// to minimize interest paid?"
-//
-// Returns itnerestPaid, the total accrued during this payment attempt, and whether the loans were all
+// Returns interestPaid, the total accrued during this permutation, and whether the loans were all
 // paidInFull at the end of the function.
+// If this permutation accrues more interest paid than bestInterest, the function returns early
+// since a prior attempt did better.
 func MakePayments(state *State, bestInterest money.Money) (interestPaid money.Money, paidInFull bool) {
+	// TODO is fucked
+	fmt.Println("making payments\n----------------")
+	fmt.Printf("State:\nInterestAccrued: %s\nLoans: %+v\nDate: %s\n\n", state.InterestAccrued.String(), state.Loans, state.Date.DateString())
 	// If everything is paid off, return
-	if checkPaidOff(state.loans) {
-		return state.interestAccrued, true
+	if checkPaidOff(state.Loans) {
+		return state.InterestAccrued, true
 	}
 
 	// Should we even continue? If we're doing worse than our best attempt, nope.
-	if state.interestAccrued.GreaterThan(bestInterest) {
-		return state.interestAccrued, false
+	if state.InterestAccrued.GreaterThan(bestInterest) {
+		fmt.Printf("returned because state.InterestAccrued > bestInterest: %s > %s\n", state.InterestAccrued.String(), bestInterest.String())
+		return state.InterestAccrued, false
 	}
 
-	// Pick the loan to make the largest payment to at random.
-	chosenIndex := rand.Intn(len(state.loans))
-	budgetRemaining := state.budget
+	// Initalize the budgeted amount
+	budgetRemaining := state.Budget
 
-	for i, loan := range state.loans {
+	// Calculate values for each loan and apply the payments
+	for i, loan := range state.Loans {
+		fmt.Printf("Calculating for %+v\n", loan)
+		// Remove it if it's paid in full
+		if loan.Principal.LessThanOrEqualToZero() {
+			state.Loans = append(state.Loans[:i], state.Loans[i+1:]...)
+			continue
+		}
 
 		// Figure out interest
-		newInterest := interest.MonthlyInterest(*state.date, loan.Principal, loan.Rate)
+		newInterest := interest.MonthlyInterest(*state.Date, loan.Principal, loan.Rate)
+		// Add it to the loan
 		loan.UnpaidInterest = loan.UnpaidInterest.Add(newInterest)
+		// Add to the total in the state
+		state.InterestAccrued = state.InterestAccrued.Add(newInterest)
 
-		unpaidInterest := loan.UnpaidInterest
-		state.interestAccrued = state.interestAccrued.Add(unpaidInterest)
-		state.paidExtraOn = append(state.paidExtraOn, chosenIndex)
+		fmt.Printf("After Interest accrual: %+v\n", loan)
 
-		if i != chosenIndex {
+		// Non-end-of-slice indexes get the minimum payment.
+		if i < len(state.Loans) {
+			fmt.Println("-- Paying Min Payment --")
 			budgetRemaining = budgetRemaining.Subtract(loan.MinPayment)
-			loan.PayOnLoan(loan.MinPayment)
+			remainder := loan.PayOnLoan(loan.MinPayment)
+			budgetRemaining = budgetRemaining.Add(remainder)
+		} else {
+			fmt.Printf("!! PAYING %s !!\n", budgetRemaining.String())
+			// Make the extra payment on the last index
+			budgetRemaining = budgetRemaining.Subtract(budgetRemaining)
 		}
+		fmt.Printf("After Payment (index %d): %+v\n", i, loan)
+
+		// Persist it to the state
+		state.Loans[i] = loan
+
 	}
 
-	// Finally, pay the remaining budget on the chosen loan
-	state.loans[chosenIndex].PayOnLoan(budgetRemaining)
-
 	// Increment the date
-	state.date.AddMonth()
+	state.Date = state.Date.AddMonth()
 
 	// Do it all again
 	return MakePayments(state, bestInterest)

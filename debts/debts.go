@@ -13,7 +13,6 @@ type Loan struct {
 	Rate           interest.Rate
 	MinPayment     money.Money
 	DueDay         int
-	Schedule       []Payment
 }
 
 type Payment struct {
@@ -51,6 +50,7 @@ func (loan *Loan) PayOnLoan(amount money.Money) (remainder money.Money) {
 
 		return money.Money{Cents: remainder}
 	} else if centsLeft > 0 && centsLeft < loan.Principal.Cents {
+		loan.UnpaidInterest.Cents = 0
 		loan.Principal.Cents = max(loan.Principal.Cents-centsLeft, 0)
 		return money.Money{Cents: 0}
 
@@ -59,4 +59,31 @@ func (loan *Loan) PayOnLoan(amount money.Money) (remainder money.Money) {
 		return money.Money{Cents: 0}
 	}
 
+}
+
+func (loan Loan) Equals(other Loan) bool {
+	if loan.Name != other.Name {
+		return false
+	}
+	if loan.Principal != other.Principal {
+		return false
+	}
+	if loan.UnpaidInterest != other.UnpaidInterest {
+		return false
+	}
+	if loan.Rate != other.Rate {
+		return false
+	}
+	if loan.MinPayment != other.MinPayment {
+		return false
+	}
+	if loan.DueDay != other.DueDay {
+		return false
+	}
+
+	return true
+}
+
+func (loan Loan) NotEquals(other Loan) bool {
+	return !loan.Equals(other)
 }
