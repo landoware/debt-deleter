@@ -31,8 +31,16 @@ func (m Money) Add(other Money) Money {
 	return Money{m.Cents + other.Cents}
 }
 
+func (m Money) Plus(other Money) Money {
+	return m.Add(other)
+}
+
 func (m Money) Subtract(other Money) Money {
 	return Money{m.Cents - other.Cents}
+}
+
+func (m Money) Minus(other Money) Money {
+	return m.Subtract(other)
 }
 
 // Comparison

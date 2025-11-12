@@ -6,8 +6,6 @@ probably O(n-finity)
 
 ## Payments
 - [ ] Break up the MakePayments function into smaller functions for readability and testing.
-    - [ ] write the tests too
-- [ ] Do something better than randomly picking the loan to make a payment on
 
 ## Amorts
 - [x] Refactor to use the interest package
@@ -22,3 +20,13 @@ probably O(n-finity)
 ## Misc
 - [ ] Add methods to create money and rates from strings and floats
 
+
+# Package
+
+- debt-deleter-core
+  - Shared calculation logic. Basically, this repo
+- debt-deleter-tui
+  - Terminal UI, start with the contents of main.go
+- debt-deleter-server
+  - HTTP server for a web UI
+- debt-deleter
